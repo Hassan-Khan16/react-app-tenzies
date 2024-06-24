@@ -1,5 +1,6 @@
 import React from "react"
 import Die from "./Die"
+import Timer from "./Timer"
 import { nanoid } from "nanoid"
 import Confetti from "react-confetti"
 
@@ -7,6 +8,35 @@ export default function App() {
 
   const [dice, setDice] = React.useState(allNewDice())
   const [tenzies, setTenzies] = React.useState(false)
+  const [isActive, setIsActive] = React.useState(false);
+  const [time, setTime] = React.useState(0);
+  const [bestTime, setBestTime] = React.useState(
+    localStorage.getItem("bestTime") ? Number(localStorage.getItem("bestTime")) : null
+  );
+
+  React.useEffect(() => {
+    let interval = null;
+
+    if (isActive !== false) {
+      interval = setInterval(() => {
+        setTime((time) => time + 10);
+      }, 10);
+    } else {
+      clearInterval(interval);
+    }
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isActive]);
+
+  const handleStart = () => {
+    setIsActive(true);
+  };
+
+  const handleReset = () => {
+    setIsActive(false);
+    setTime(0);
+  };
 
   React.useEffect(() => {
     const allHeld = dice.every(die => die.isHeld)
@@ -14,6 +44,11 @@ export default function App() {
     const allSameValue = dice.every(die => die.value === firstValue)
     if (allHeld && allSameValue) {
       setTenzies(true)
+      setIsActive(false)
+      if (bestTime === null || time < bestTime) {
+        setBestTime(time);
+        localStorage.setItem("bestTime", time);
+      }
     }
   }, [dice])
 
@@ -32,7 +67,6 @@ export default function App() {
     }
     return newDice
   }
-
   function rollDice() {
     if (!tenzies) {
       setDice(oldDice => oldDice.map(die => {
@@ -40,9 +74,11 @@ export default function App() {
           die :
           generateNewDie()
       }))
+      handleStart();
     } else {
       setTenzies(false)
       setDice(allNewDice())
+      handleReset()
     }
   }
 
@@ -78,6 +114,10 @@ export default function App() {
       >
         {tenzies ? "New Game" : "Roll"}
       </button>
+      <Timer
+        time={time}
+      />
+      {bestTime !== null && <p>Best Time: {bestTime / 1000}s</p>}
     </main>
   )
 }
